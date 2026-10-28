@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three-Tier Docker Application</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #172033;
+        }
+        header {
+            background: #172554;
+            color: white;
+            padding: 28px 16px;
+            text-align: center;
+        }
+        main {
+            max-width: 760px;
+            margin: 30px auto;
+            padding: 24px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px #0001;
+        }
+        .tiers {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 24px 0;
+        }
+        .tier {
+            padding: 16px 8px;
+            background: #e0e7ff;
+            border-radius: 8px;
+            text-align: center;
+        }
+        input, button {
+            padding: 11px;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+        input {
+            width: 70%;
+            border: 1px solid #cbd5e1;
+        }
+        button {
+            border: 0;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+        li { margin: 10px 0; }
+        #status { color: #475569; }
+        @media (max-width: 500px) {
+            .tiers { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Three-Tier Application</h1>
+    <p>AWS EC2 + Docker Compose + Flask + MySQL</p>
+</header>
+
+<main>
+    <h2>Deployment Status</h2>
+    <p id="status">Checking backend and database...</p>
+
+    <div class="tiers">
+        <div class="tier"><strong>Tier 1</strong><br>Nginx</div>
+        <div class="tier"><strong>Tier 2</strong><br>Flask API</div>
+        <div class="tier"><strong>Tier 3</strong><br>MySQL</div>
+    </div>
+
+    <h2>Add an item</h2>
+    <form id="item-form">
+        <input id="item-name" maxlength="200"
+               placeholder="Enter an item name" required>
+        <button type="submit">Save</button>
+    </form>
+
+    <h2>Items from MySQL</h2>
+    <button id="refresh">Refresh Items</button>
+    <ul id="items"></ul>
+</main>
+
+<script>
+async function loadStatus() {
+    const status = document.getElementById("status");
+    try {
+        const response = await fetch("/api/health");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Health check failed");
+        status.textContent =
+            `Backend: ${data.backend} | Database: ${data.database}`;
+    } catch (error) {
+        status.textContent = "Application check failed: " + error.message;
+    }
+}
+
+async function loadItems() {
+    const list = document.getElementById("items");
+    list.replaceChildren();
+
+    try {
+        const response = await fetch("/api/items");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not load items");
+
+        data.items.forEach(item => {
+            const li = document.createElement("li");
+            li.textContent = `${item.id}: ${item.name}`;
+            list.appendChild(li);
+        });
+
+        if (data.items.length === 0) {
+            list.textContent = "No items yet. Add your first item!";
+        }
+    } catch (error) {
+        list.textContent = "Error: " + error.message;
+    }
+}
+
+document.getElementById("item-form").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const input = document.getElementById("item-name");
+    const name = input.value.trim();
+    if (!name) return;
+
+    try {
+        const response = await fetch("/api/items", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({name})
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Save failed");
+
+        input.value = "";
+        await loadItems();
+        await loadStatus();
+    } catch (error) {
+        alert("Unable to save item: " + error.message);
+    }
+});
+
+document.getElementById("refresh").addEventListener("click", loadItems);
+
+loadStatus();
+loadItems();
+</script>
+</body>
+</html>
