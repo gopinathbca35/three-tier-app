@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main', credentialsId: 'Git-cred', url: 'https://github.com/gopinathbca35/three-tier-app.git'
             }
         }
 
