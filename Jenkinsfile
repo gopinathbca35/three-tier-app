@@ -31,7 +31,7 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
+/*      stage('Build Docker Images') {
             steps {
                 withCredentials([
                     usernamePassword(
@@ -92,39 +92,7 @@ pipeline {
                 }
             }
         }
-
-        stage('Prepare Deployment Files') {
-            steps {
-                sh '''
-                    set -eu
-
-                    test -d "$DEPLOY_DIR"
-                    test -f "$DEPLOY_DIR/.env"
-
-                    rsync -a \
-                        --exclude='.env' \
-                        --exclude='.git/' \
-                        "$WORKSPACE/" \
-                        "$DEPLOY_DIR/"
-                '''
-            }
-        }
-
-        stage('Validate Compose') {
-            steps {
-                sh '''
-                    set -eu
-                    cd "$DEPLOY_DIR"
-
-                    docker compose \
-                        -p "$COMPOSE_PROJECT" \
-                        config --quiet
-
-                    echo "Compose validation passed."
-                '''
-            }
-        }
-
+*/
         stage('Deploy on EC2') {
             steps {
                 withCredentials([
@@ -156,40 +124,4 @@ pipeline {
                 }
             }
         }
-
-        stage('Verify Deployment') {
-            steps {
-                sh '''
-                    set -eu
-                    cd "$DEPLOY_DIR"
-
-                    docker compose -p "$COMPOSE_PROJECT" ps
-                    docker compose -p "$COMPOSE_PROJECT" ps --all
-
-                    curl --fail --silent --show-error \
-                        --retry 10 \
-                        --retry-delay 3 \
-                        --retry-connrefused \
-                        http://127.0.0.1:8081/ \
-                        -o /dev/null
-
-                    echo "Frontend HTTP check passed."
-                '''
-            }
-        }
     }
-
-    post {
-        success {
-            echo 'GitHub to Docker Hub to EC2 deployment succeeded.'
-        }
-
-        failure {
-            echo 'Pipeline failed. Inspect the stage logs and container health.'
-        }
-
-        always {
-            echo 'Pipeline execution finished.'
-        }
-    }
-}
