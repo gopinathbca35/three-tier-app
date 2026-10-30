@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: gopinathbca35/three-tier-frontend:latest
+    image: 372951851936.dkr.ecr.us-east-1.amazonaws.com/three-tier-frontend:1.0
     container_name: three-tier-frontend
     ports:
       - "8081:80"
@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: gopinathbca35/three-tier-backend:latest
+    image: 372951851936.dkr.ecr.us-east-1.amazonaws.com/three-tier-backend:1.0
     container_name: three-tier-backend
     environment:
       DB_HOST: ${DB_HOST:?Set DB_HOST in .env}
